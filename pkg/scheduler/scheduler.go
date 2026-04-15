@@ -130,7 +130,6 @@ func (pc *Scheduler) runOnce() {
 	for _, action := range actions {
 		actionStartTime := time.Now()
 		action.Execute(ssn)
-		klog.V(3).Infof("Action %s took %v", action.Name(), time.Since(actionStartTime))
 		metrics.UpdateActionDuration(action.Name(), metrics.Duration(actionStartTime))
 	}
 }
@@ -141,6 +140,7 @@ func (pc *Scheduler) loadSchedulerConf() {
 		actions, plugins := pc.getSchedulerConf()
 		klog.V(2).Infof("Finished loading scheduler config. Final state: actions=%v, plugins=%v", actions, plugins)
 	}()
+
 	if pc.disableDefaultConf && len(pc.schedulerConf) == 0 {
 		klog.Fatalf("No --scheduler-conf path provided and default configuration fallback is disabled")
 	}

@@ -208,16 +208,6 @@ func (ssn *Session) AddHyperNodeGradientForSubJobFn(name string, fn api.HyperNod
 	ssn.hyperNodeGradientForSubJobFns[name] = fn
 }
 
-// AddPreemptableNodesFn add preemptableNodesFn function
-func (ssn *Session) AddPreemptableNodesFn(name string, fn api.PreemptableNodesFn) {
-	ssn.preemptableNodesFns[name] = fn
-}
-
-// AddPreemptableTasksFn add preemptableTasksFn function
-func (ssn *Session) AddPreemptableTasksFn(name string, fn api.PreemptableTasksFn) {
-	ssn.preemptableTasksFns[name] = fn
-}
-
 // Reclaimable invoke reclaimable function of the plugins
 func (ssn *Session) Reclaimable(reclaimer *api.TaskInfo, reclaimees []*api.TaskInfo) []*api.TaskInfo {
 	var victims []*api.TaskInfo
@@ -315,65 +305,6 @@ func (ssn *Session) Preemptable(preemptor *api.TaskInfo, preemptees []*api.TaskI
 	}
 
 	return victims
-}
-
-// GetPreemptableNodes filter out those node that do not have a preemptable pod
-func (ssn *Session) GetPreemptableNodes(nodes []*api.NodeInfo) []*api.NodeInfo {
-	inputNodesMap := make(map[string]*api.NodeInfo)
-	preemptableNodesMap := make(map[string]*api.NodeInfo)
-	foundPlugin := false
-	for _, node := range nodes {
-		inputNodesMap[node.Name] = node
-	}
-	for _, tier := range ssn.Tiers {
-		for _, plugin := range tier.Plugins {
-			if !isEnabled(plugin.EnabledPreemptableNodes) {
-				continue
-			}
-			fn, found := ssn.preemptableNodesFns[plugin.Name]
-			if !found {
-				continue
-			}
-			foundPlugin = true
-			for _, nodeName := range fn() {
-				if node, ok := inputNodesMap[nodeName]; ok {
-					preemptableNodesMap[nodeName] = node
-				}
-			}
-		}
-	}
-	if !foundPlugin {
-		return nodes
-	}
-	ret := []*api.NodeInfo{}
-	for _, node := range preemptableNodesMap {
-		ret = append(ret, node)
-	}
-	return ret
-}
-
-// GetPreemptableTasks returns a list of tasks that can be preempted
-func (ssn *Session) GetPreemptableTasks() []*api.TaskInfo {
-	preemptableTasksMap := make(map[string]*api.TaskInfo)
-	for _, tier := range ssn.Tiers {
-		for _, plugin := range tier.Plugins {
-			if !isEnabled(plugin.EnabledPreemptableTasks) {
-				continue
-			}
-			fn, found := ssn.preemptableTasksFns[plugin.Name]
-			if !found {
-				continue
-			}
-			for _, task := range fn() {
-				preemptableTasksMap[string(task.UID)] = task
-			}
-		}
-	}
-	ret := []*api.TaskInfo{}
-	for _, task := range preemptableTasksMap {
-		ret = append(ret, task)
-	}
-	return ret
 }
 
 // Overused invoke overused function of the plugins
