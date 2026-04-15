@@ -386,3 +386,9 @@ type HyperNodeGradientForJobFn func(job *JobInfo, hyperNode *HyperNodeInfo) [][]
 // HyperNodeGradientForSubJobFn group hyperNodes into several gradients,
 // and discard hyperNodes that unmatched the subJob topology requirements.
 type HyperNodeGradientForSubJobFn func(subJob *SubJobInfo, hyperNode *HyperNodeInfo) [][]*HyperNodeInfo
+
+// PreemptableNodesFn is the func declaration used to return a list of preemptable node names
+type PreemptableNodesFn func() []string
+
+// PreemptableTasksFn is the func declaration used to return a list of preemptable tasks
+type PreemptableTasksFn func() []*TaskInfo

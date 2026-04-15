@@ -27,6 +27,7 @@ import (
 	"volcano.sh/volcano/cmd/scheduler/app/options"
 	"volcano.sh/volcano/pkg/kube"
 	"volcano.sh/volcano/pkg/scheduler"
+	"volcano.sh/volcano/pkg/scheduler/cache"
 	"volcano.sh/volcano/pkg/scheduler/framework"
 	"volcano.sh/volcano/pkg/scheduler/metrics"
 	"volcano.sh/volcano/pkg/signals"
@@ -126,9 +127,29 @@ func Run(opt *options.ServerOption) error {
 		//lint:ignore SA1019 LockObjectNamespace is deprecated and will be removed in a future release
 		opt.LeaderElection.ResourceNamespace = opt.LockObjectNamespace
 	}
+
+	lockObjectName := ""
+	multiSchedulerEnable := os.Getenv("MULTI_SCHEDULER_ENABLE")
+	if multiSchedulerEnable == "true" {
+		// If multi-scheduler is enabled, use its scheduler group name as lockObjectName
+		mySchedulerPodName := os.Getenv("SCHEDULER_POD_NAME")
+		if mySchedulerPodName == "" {
+			return fmt.Errorf("SCHEDULER_POD_NAME environment variable is not set")
+		}
+		lockObjectName, err = cache.GetSchedulerGroup(mySchedulerPodName)
+		if err != nil {
+			return fmt.Errorf("unable to determine schedulerGroupName: %v", err)
+		}
+		klog.V(4).Infof("pod %v belongs to scheduler group %v", mySchedulerPodName, lockObjectName)
+	} else {
+		// If multi-scheduler is not enabled, generate a default component name as lockObjectName
+		lockObjectName = commonutil.GenerateComponentName(opt.SchedulerNames)
+		klog.V(4).Infof("Multi-scheduler not enabled. Using generated component name: %v", lockObjectName)
+	}
+
 	rl, err := resourcelock.New(resourcelock.LeasesResourceLock,
 		opt.LeaderElection.ResourceNamespace,
-		opt.LeaderElection.ResourceName,
+		lockObjectName,
 		leaderElectionClient.CoreV1(),
 		leaderElectionClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
@@ -147,7 +168,7 @@ func Run(opt *options.ServerOption) error {
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: run,
 			OnStoppedLeading: func() {
-				klog.Fatalf("leaderelection lost")
+				klog.Fatalf("leaderelection with lockObjectName %s lost", lockObjectName)
 			},
 		},
 	})
