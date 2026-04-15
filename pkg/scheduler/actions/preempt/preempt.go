@@ -299,7 +299,12 @@ func (pmpt *Action) preempt(
 
 	// we should filter out those nodes that are UnschedulableAndUnresolvable status got in allocate action
 	allNodes := ssn.FilterOutUnschedulableAndUnresolvableNodesForTask(preemptor)
-	predicateNodes, _ := predicateHelper.PredicateNodes(preemptor, allNodes, ssn.PredicateForPreemptAction, pmpt.enablePredicateErrorCache, ssn.NodesInShard)
+	preemptableNodes := ssn.GetPreemptableNodes(allNodes)
+	if len(preemptableNodes) == 0 {
+		klog.V(3).Infof("No preemptable nodes in the cluster for task <%s/%s>.", preemptor.Namespace, preemptor.Name)
+		return false, nil
+	}
+	predicateNodes, _ := predicateHelper.PredicateNodes(preemptor, preemptableNodes, ssn.PredicateForPreemptAction, pmpt.enablePredicateErrorCache, ssn.NodesInShard)
 
 	candidateNodes := util.GetPredicatedNodeByShard(predicateNodes, ssn.NodesInShard)
 	var preemptSuccess bool

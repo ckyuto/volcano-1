@@ -26,6 +26,7 @@ import (
 	schedulingv1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/cache"
+	"volcano.sh/volcano/pkg/scheduler/conf"
 	"volcano.sh/volcano/pkg/scheduler/util"
 )
 
@@ -135,4 +136,34 @@ func TestFilterOutPreemptMayNotHelpNodes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetPreemptableNodes(t *testing.T) {
+	allNodes := []*api.NodeInfo{{Name: "node1"}, {Name: "node2"}, {Name: "node3"}, {Name: "node4"}, {Name: "node5"}}
+
+	scherCache := cache.NewDefaultMockSchedulerCache("test-scheduler")
+	ssn := OpenSession(scherCache, nil, nil)
+	// Plugin not enabled
+	assert.Equal(t, len(allNodes), len(ssn.GetPreemptableNodes(allNodes)), "case: return all nodes as preemptable plugin is not enabled")
+
+	PluginName := "random-name"
+	enabledPreemptableNodes := true
+	pluginOption := conf.PluginOption{
+		Name:                    PluginName,
+		EnabledPreemptableNodes: &enabledPreemptableNodes,
+	}
+	schedulerCache := cache.NewDefaultMockSchedulerCache("test-scheduler")
+	ssn = OpenSession(schedulerCache, []conf.Tier{
+		{
+			Plugins: []conf.PluginOption{pluginOption},
+		},
+	},
+		[]conf.Configuration{
+			{
+				Name: "preempt",
+			},
+		},
+	)
+	// Plugin enabled but function not added.
+	assert.Equal(t, 5, len(ssn.GetPreemptableNodes(allNodes)), "case: return all nodes as function implementation is not added")
 }

@@ -17,13 +17,28 @@ limitations under the License.
 package cache
 
 import (
+	"fmt"
 	"os"
+	"stathat.com/c/consistent"
+	"strconv"
 	"testing"
-
-	"volcano.sh/volcano/cmd/scheduler/app/options"
 )
 
+var globalConsistent *consistent.Consistent
+var SCHEDULER_GROUP_NUM int = 1000
+var REPLICA_PER_SCHEDULER_GROUP int = 2
+
 func TestMain(m *testing.M) {
-	options.Default()
+	os.Setenv("SCHEDULER_GROUP_NUM", strconv.Itoa(SCHEDULER_GROUP_NUM))
+	os.Setenv("REPLICA_PER_SCHEDULER_GROUP", strconv.Itoa(REPLICA_PER_SCHEDULER_GROUP))
+	globalConsistent = consistent.New()
+
+	// Add 1000 schedulers to the hash ring.
+	// The chance of 2 entities having hashed scheduler is 0.1% which also becomes the failure % of the test.
+	// Unfortunately, this is needed as the new function signature does not accpect Mock.
+	for i := 0; i < SCHEDULER_GROUP_NUM; i++ {
+		schedulerName := fmt.Sprintf("%s%d", schedulerGroupPrefix, i)
+		globalConsistent.Add(schedulerName)
+	}
 	os.Exit(m.Run())
 }

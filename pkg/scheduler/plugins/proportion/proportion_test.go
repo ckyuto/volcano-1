@@ -41,6 +41,7 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/cache"
 	"volcano.sh/volcano/pkg/scheduler/conf"
 	"volcano.sh/volcano/pkg/scheduler/framework"
+	"volcano.sh/volcano/pkg/scheduler/metrics"
 	"volcano.sh/volcano/pkg/scheduler/plugins/gang"
 	"volcano.sh/volcano/pkg/scheduler/plugins/priority"
 	"volcano.sh/volcano/pkg/scheduler/uthelper"
@@ -181,6 +182,10 @@ func TestProportion(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		// Reset queue metrics to avoid accumulation across test cases
+		metrics.DeleteQueueMetrics("q1")
+		metrics.DeleteQueueMetrics("q2")
+
 		// initialize schedulerCache
 		binder := util.NewFakeBinder(0)
 		recorder := record.NewFakeRecorder(100)
@@ -261,6 +266,7 @@ func TestProportion(t *testing.T) {
 					}
 					// t.Logf("after delete vcjob pg2, queue_allocated metrics is ok,%v", metrics)
 					c <- true
+					return
 				}
 				num++
 			}

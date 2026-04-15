@@ -25,6 +25,7 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/plugins/binpack"
 	"volcano.sh/volcano/pkg/scheduler/plugins/capacity"
 	"volcano.sh/volcano/pkg/scheduler/plugins/cdp"
+	"volcano.sh/volcano/pkg/scheduler/plugins/collocate"
 	"volcano.sh/volcano/pkg/scheduler/plugins/conformance"
 	"volcano.sh/volcano/pkg/scheduler/plugins/deviceshare"
 	"volcano.sh/volcano/pkg/scheduler/plugins/drf"
@@ -45,6 +46,7 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/plugins/sla"
 	tasktopology "volcano.sh/volcano/pkg/scheduler/plugins/task-topology"
 	"volcano.sh/volcano/pkg/scheduler/plugins/tdm"
+	"volcano.sh/volcano/pkg/scheduler/plugins/uqm"
 	"volcano.sh/volcano/pkg/scheduler/plugins/usage"
 )
 
@@ -80,4 +82,13 @@ func init() {
 
 	// Plugins for ResourceQuota
 	framework.RegisterPluginBuilder(resourcequota.PluginName, resourcequota.New)
+
+	// Plugin for UqmQuota approval
+	framework.RegisterPluginBuilder(uqm.PluginName, uqm.New)
+
+	// Plugin for UqmProportion floe
+	framework.RegisterPluginBuilder(proportion.UqmProportionPluginName, proportion.NewUqmProportionPlugin)
+
+	// Plugin for refactored code of Collocation
+	framework.RegisterPluginBuilder(collocate.ColocatePluginName, collocate.NewColocatePlugin)
 }
