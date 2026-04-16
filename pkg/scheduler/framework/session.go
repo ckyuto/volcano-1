@@ -147,8 +147,6 @@ type Session struct {
 	subJobOrderFns                map[string]api.CompareFn
 	hyperNodeGradientForJobFns    map[string]api.HyperNodeGradientForJobFn
 	hyperNodeGradientForSubJobFns map[string]api.HyperNodeGradientForSubJobFn
-	preemptableNodesFns           map[string]api.PreemptableNodesFn
-	preemptableTasksFns           map[string]api.PreemptableTasksFn
 
 	// cycleStatesMap is used to temporarily store the scheduling status of each pod, its life cycle is same as Session.
 	// Because state needs to be passed between different extension points (not only used in PreFilter and Filter),
@@ -220,8 +218,6 @@ func openSession(cache cache.Cache) *Session {
 		subJobOrderFns:                map[string]api.CompareFn{},
 		hyperNodeGradientForJobFns:    map[string]api.HyperNodeGradientForJobFn{},
 		hyperNodeGradientForSubJobFns: map[string]api.HyperNodeGradientForSubJobFn{},
-		preemptableNodesFns:           map[string]api.PreemptableNodesFn{},
-		preemptableTasksFns:           map[string]api.PreemptableTasksFn{},
 	}
 
 	snapshot := cache.Snapshot()
@@ -1087,8 +1083,4 @@ func translateHighestTierNameToAllowed(spec *scheduling.NetworkTopologySpec, nam
 		}
 	}
 	return false, nil
-}
-
-func GetRegisteredSessionPlugins(ssn *Session) map[string]Plugin {
-	return ssn.plugins
 }

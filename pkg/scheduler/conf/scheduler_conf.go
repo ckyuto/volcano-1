@@ -102,10 +102,6 @@ type PluginOption struct {
 	EnabledSubJobOrder *bool `yaml:"enabledSubJobOrder"`
 	// EnabledHyperNodeGradient defines whether hyperNodeGradientFn is enabled
 	EnabledHyperNodeGradient *bool `yaml:"enabledHyperNodeGradient"`
-	// EnabledPreemptableNodes defines whether PreemptableNodesFn is enabled
-	EnabledPreemptableNodes *bool `yaml:"enablePreemptableNodes"`
-	// EnabledPreemptableTasks defines whether PreemptableTasksFn is enabled
-	EnabledPreemptableTasks *bool `yaml:"enablePreemptableTasks"`
 	// Arguments defines the different arguments that can be given to different plugins
 	Arguments map[string]interface{} `yaml:"arguments"`
 }
