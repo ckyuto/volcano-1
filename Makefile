@@ -24,6 +24,10 @@ SUPPORT_PLUGINS ?= "no"
 CRD_VERSION ?= v1
 BUILDX_OUTPUT_TYPE ?= "docker"
 
+# Hard code coverage threshold: if the total test code coverage is less
+# than this value, `make coverage` fails with Error 255.
+COVERAGE_THRESHOLD := 40
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -159,10 +163,14 @@ manifests: controller-gen
 unit-test:
 	go clean -testcache
 	if [ ${OS} = 'darwin' ];then\
-		go list ./... | grep -v "/e2e" | GOOS=${OS} xargs go test;\
+		go list ./... | grep -v "/e2e" | GOOS=${OS} xargs go test -coverprofile=coverage.out -covermode=atomic -timeout 1m;\
 	else\
-		go test -p 8 -race $$(find pkg cmd -type f -name '*_test.go' | sed -r 's|/[^/]+$$||' | sort | uniq | sed "s|^|volcano.sh/volcano/|");\
+		go test -coverprofile=coverage.out -covermode=atomic -p 8 -race -timeout 1m $$(find pkg cmd -type f -name '*_test.go' | sed -r 's|/[^/]+$$||' | sort | uniq | sed "s|^|volcano.sh/volcano/|");\
 	fi;
+
+coverage: unit-test
+	go tool cover -func=coverage.out | \
+	awk '/total:/ { gsub("%", "", $$NF); printf "Total coverage: %4.2f%%",$$NF; if ($$NF + 0 < $(COVERAGE_THRESHOLD)) { print " is below the threshold $(COVERAGE_THRESHOLD)%"; exit -1; }; print ""; }';
 
 e2e: images
 	./hack/run-e2e-kind.sh

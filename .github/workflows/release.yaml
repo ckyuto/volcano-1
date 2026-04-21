@@ -1,36 +1,92 @@
-# Ref: https://goreleaser.com/ci/actions/
-name: goreleaser
+name: daily release
 on:
+  schedule:
+  # Runs at 0:00 and 12:00 UTC every day
+  - cron:  '0 */12 * * *'
+  # Automatically push the image when releasing the version
   push:
-    # KJP versions will use normal semantic versioning with a suffix indicating the upstream Volcano release.
-    # e.g. v0.0.1-volcano1.7.0
-    # When Volcano is upgraded to 1.9:
-    # v2.0.0-volcano1.9.0 <<< major external change
     tags:
-      - 'v*.*.*-volcano*.*.*'
-permissions:
-  # needed to create releases
-  contents: write
-jobs:
-  goreleaser:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - "v*.*.*"
 
-      - name: Set up Go
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: /home/runner/work/${{ github.repository }}
+    steps:
+      - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: 1.24.x
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+      - name: Install musl
+        run: |
+          wget http://musl.libc.org/releases/musl-1.2.1.tar.gz
+          tar -xf musl-1.2.1.tar.gz && cd musl-1.2.1
+          ./configure
+          make && sudo make install
+
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
+          fetch-depth: 0
+          path: ./src/github.com/${{ github.repository }}
 
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get tag or branch name
+        run: |
+          echo "TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "RELEASE_VER=${{ github.ref_name }}" >> $GITHUB_ENV
+          # Downcase the repository owner for GHCR / Docker compatibility
+          OWNER="${{ github.repository_owner }}"
+          echo "REPO_OWNER=${OWNER,,}" >> $GITHUB_ENV
+
+      - name: Update tag and release_ver
+        if: ${{ github.ref_name == 'master' }}
+        run: |
+          echo "TAG=latest" >> $GITHUB_ENV
+          echo "RELEASE_VER=latest" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Run verify test
+        run: |
+          make verify
+          make TAG=${{ env.TAG }} generate-yaml
+          make TAG=${{ env.TAG }} verify-generated-yaml
+          sudo make unit-test
+        working-directory: ./src/github.com/${{ github.repository }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3 
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Daily Release to Docker Hub
+        run: docker buildx create --use && make TAG=${{ env.TAG }} RELEASE_VER=${{ env.RELEASE_VER }} DOCKER_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} DOCKER_PASSWORD=${{ secrets.DOCKERHUB_TOKEN }} CC=/usr/local/musl/bin/musl-gcc DOCKER_PLATFORMS="linux/amd64,linux/arm64" BUILDX_OUTPUT_TYPE=registry release
+        working-directory: ./src/github.com/${{ github.repository }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Daily Release to GitHub Container Registry
+        run: make TAG=${{ env.TAG }} RELEASE_VER=${{ env.RELEASE_VER }} IMAGE_PREFIX=ghcr.io/${{ env.REPO_OWNER }} CC=/usr/local/musl/bin/musl-gcc DOCKER_PLATFORMS="linux/amd64,linux/arm64" BUILDX_OUTPUT_TYPE=registry release
+        working-directory: ./src/github.com/${{ github.repository }}
+
+      - name: Logout from registries
+        if: always()
+        run: |
+          docker logout
+          docker logout ghcr.io
