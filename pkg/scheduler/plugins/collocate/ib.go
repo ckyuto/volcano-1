@@ -199,8 +199,8 @@ func (ib *infiniband) CloseSession(ssn *framework.Session) {
 * If the nodepool is not being migrated, it returns the same nodepool.
 **/
 func ibMigratedTo(from string) string {
-	if from == OldIBNodePool {
-		return NewIBNodePool
+	if to, ok := IBNodePoolMigrations[from]; ok {
+		return to
 	}
 	return from
 }

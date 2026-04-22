@@ -13,9 +13,15 @@ const (
 	GPUResourceName     = "nvidia.com/gpu"
 	ibPluginName        = "ib"
 	mzPluginName        = "mz"
-	OldIBNodePool       = "nimbus-training-nvidia-gpu-36feb"
-	NewIBNodePool       = "nimbus-gpu-nvidia-h100-ssd-no-mig-kjp-2"
 )
+
+// IBNodePoolMigrations maps each old IB NodePool to the new NodePool its nodes are being migrated to.
+// Add an entry when a NodePool's configuration is changing and its nodes are being moved to a replacement pool.
+var IBNodePoolMigrations = map[string]string{
+	"nimbus-gpu-nvidia-h100-ssd-no-mig-kjp":   "gpu-nvidia-h100-ssd-volcano-hami-kjp",
+	"nimbus-gpu-nvidia-h100-ssd-no-mig-kjp-2": "gpu-nvidia-h100-ssd-volcano-hami-kjp-2",
+	"nimbus-gpu-nvidia-h200-no-mig-kjp":       "gpu-nvidia-h200-volcano-hami-kjp",
+}
 
 /**
 * All the plugins that want to influence the scoring of colocation should implement this interface.
