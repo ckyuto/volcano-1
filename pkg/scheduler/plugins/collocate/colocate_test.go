@@ -1724,10 +1724,10 @@ func TestColocate_PoolMigration(t *testing.T) {
 		"node.linkedin.com/pool": "pool-1",
 	}))
 	schedulerCache.AddOrUpdateNode(buildNode("node-2", "4000m", "4G", "5", map[string]string{
-		"node.linkedin.com/pool": "nimbus-training-nvidia-gpu-36feb",
+		"node.linkedin.com/pool": "nimbus-gpu-nvidia-h100-ssd-no-mig-kjp-2",
 	}))
 	schedulerCache.AddOrUpdateNode(buildNode("node-3", "4000m", "4G", "5", map[string]string{
-		"node.linkedin.com/pool": "nimbus-gpu-nvidia-h100-ssd-no-mig-kjp-2",
+		"node.linkedin.com/pool": "gpu-nvidia-h100-ssd-volcano-hami-kjp-2",
 	}))
 	schedulerCache.BindFlowChannel = make(chan *cache.BindContext, 5000)
 	framework.RegisterPluginBuilder(ColocatePluginName, NewColocatePlugin)
