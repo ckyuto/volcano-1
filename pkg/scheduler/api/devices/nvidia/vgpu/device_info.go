@@ -158,7 +158,7 @@ func (gs *GPUDevices) AddQueueResource(pod *v1.Pod) map[string]float64 {
 		klog.Errorf("pod %s has no annotation volcano.sh/devices-to-allocate", pod.Name)
 		return res
 	}
-	podDev := decodePodDevices(ids)
+	podDev := DecodePodDevices(ids)
 	for _, val := range podDev {
 		for _, deviceused := range val {
 			for _, gsdevice := range gs.Device {
@@ -188,7 +188,7 @@ func (gs *GPUDevices) addResource(annotations map[string]string, pod *v1.Pod) {
 		klog.Errorf("pod %s has no annotation volcano.sh/devices-to-allocate", pod.Name)
 		return
 	}
-	podDev := decodePodDevices(ids)
+	podDev := DecodePodDevices(ids)
 	for _, val := range podDev {
 		for _, deviceused := range val {
 			for index, gsdevice := range gs.Device {
@@ -212,7 +212,7 @@ func (gs *GPUDevices) addToPodMap(annotations map[string]string, pod *v1.Pod) {
 		klog.Errorf("pod %s has no annotation volcano.sh/devices-to-allocate", pod.Name)
 		return
 	}
-	podDev := decodePodDevices(ids)
+	podDev := DecodePodDevices(ids)
 	for _, val := range podDev {
 		for _, deviceused := range val {
 			for _, gsdevice := range gs.Device {
@@ -243,7 +243,7 @@ func (gs *GPUDevices) SubResource(pod *v1.Pod) {
 	if !ok {
 		return
 	}
-	podDev := decodePodDevices(ids)
+	podDev := DecodePodDevices(ids)
 	for _, val := range podDev {
 		for _, deviceused := range val {
 			for index, gsdevice := range gs.Device {
