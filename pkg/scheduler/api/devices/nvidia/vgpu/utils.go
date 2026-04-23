@@ -144,7 +144,8 @@ func decodeContainerDevices(str string) ContainerDevices {
 	return contdev
 }
 
-func decodePodDevices(str string) []ContainerDevices {
+// DecodePodDevices parses the vgpu-ids-new annotation into per-container device lists.
+func DecodePodDevices(str string) []ContainerDevices {
 	if len(str) == 0 {
 		return []ContainerDevices{}
 	}
