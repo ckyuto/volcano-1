@@ -58,6 +58,7 @@ const (
 var (
 	VGPUEnable     bool
 	NodeLockEnable bool
+	SchedulePolicy string
 )
 
 type ContainerDevice struct {
