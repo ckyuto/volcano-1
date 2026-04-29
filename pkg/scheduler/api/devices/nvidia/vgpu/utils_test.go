@@ -16,7 +16,9 @@ limitations under the License.
 
 package vgpu
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestCheckGPUtype(t *testing.T) {
 	tests := []struct {
@@ -107,6 +109,33 @@ func TestCheckGPUtype(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := checkGPUtype(tt.annos, tt.cardtype); got != tt.want {
 				t.Errorf("checkGPUtype() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGPUScore(t *testing.T) {
+	idle := &GPUDevice{UsedNum: 0, UsedMem: 0, Memory: 16384}
+	shared := &GPUDevice{UsedNum: 1, UsedMem: 4096, Memory: 16384}
+	full := &GPUDevice{UsedNum: 4, UsedMem: 16384, Memory: 16384}
+
+	testCases := []struct {
+		name   string
+		policy string
+		device *GPUDevice
+		want   float64
+	}{
+		{name: "spread rewards idle GPU", policy: spreadPolicy, device: idle, want: spreadMultiplier},
+		{name: "spread does not reward shared GPU", policy: spreadPolicy, device: shared, want: 0},
+		{name: "spread does not reward full GPU", policy: spreadPolicy, device: full, want: 0},
+		{name: "binpack rewards full GPU most", policy: binpackPolicy, device: full, want: binpackMultiplier},
+		{name: "binpack does not reward idle GPU", policy: binpackPolicy, device: idle, want: 0},
+		{name: "unset policy returns zero", policy: "", device: shared, want: 0},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := GPUScore(tc.policy, tc.device); got != tc.want {
+				t.Errorf("GPUScore(%q) = %f, want %f", tc.policy, got, tc.want)
 			}
 		})
 	}
