@@ -231,6 +231,12 @@ func openSession(cache cache.Cache) *Session {
 		if job.PodGroup != nil {
 			ssn.PodGroupOldState.Status[job.UID] = *job.PodGroup.Status.DeepCopy()
 			ssn.PodGroupOldState.Annotations[job.UID] = maps.Clone(job.PodGroup.GetAnnotations())
+
+			if len(job.PodGroup.Spec.SubGroupPolicy) > 0 {
+				for _, subJob := range job.SubJobs {
+					metrics.UpdatePodGroupSubgroupPods(job.Namespace, job.Name, string(subJob.UID), len(subJob.Tasks))
+				}
+			}
 		}
 	}
 	ssn.NodeList = util.GetNodeList(snapshot.Nodes, snapshot.NodeList)

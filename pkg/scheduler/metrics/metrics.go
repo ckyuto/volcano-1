@@ -133,6 +133,22 @@ var (
 		},
 	)
 
+	preemptallVictims = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Subsystem: VolcanoSubSystemName,
+			Name:      "preemptall_victims_total",
+			Help:      "Total number of pods evicted by the preemptall action",
+		}, []string{"job_namespace", "podgroup"},
+	)
+
+	podgroupSubgroupPods = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoSubSystemName,
+			Name:      "podgroup_subgroup_pods",
+			Help:      "Number of pods linked to a subgroup of a podgroup with a sub-group policy",
+		}, []string{"job_namespace", "podgroup", "subgroup"},
+	)
+
 	unscheduleTaskCount = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Subsystem: VolcanoSubSystemName,
@@ -212,6 +228,16 @@ func UpdatePreemptionVictimsCount(victimsCount int) {
 // RegisterPreemptionAttempts records number of attempts for preemtion
 func RegisterPreemptionAttempts() {
 	preemptionAttempts.Inc()
+}
+
+// RegisterPreemptallVictim increments the count of pods evicted by the preemptall action
+func RegisterPreemptallVictim(jobNamespace, podgroup string) {
+	preemptallVictims.WithLabelValues(jobNamespace, podgroup).Inc()
+}
+
+// UpdatePodGroupSubgroupPods sets the number of pods linked to a subgroup
+func UpdatePodGroupSubgroupPods(jobNamespace, podgroup, subgroup string, count int) {
+	podgroupSubgroupPods.WithLabelValues(jobNamespace, podgroup, subgroup).Set(float64(count))
 }
 
 // UpdateUnscheduleTaskCount records total number of unscheduleable tasks
