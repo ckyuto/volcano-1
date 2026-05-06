@@ -20,6 +20,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"volcano.sh/volcano/pkg/scheduler/framework"
+	"volcano.sh/volcano/pkg/scheduler/metrics"
 )
 
 type Action struct{}
@@ -44,6 +45,11 @@ func (pmptl *Action) Execute(ssn *framework.Session) {
 				victim.Namespace, victim.Name, err)
 			continue
 		}
+		var podgroup string
+		if job, ok := ssn.Jobs[victim.Job]; ok {
+			podgroup = job.Name
+		}
+		metrics.RegisterPreemptallVictim(victim.Namespace, podgroup)
 	}
 	stmt.Commit()
 }
