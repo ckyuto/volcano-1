@@ -24,7 +24,6 @@ package predicates
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
@@ -224,7 +223,7 @@ func (pp *PredicatesPlugin) OnSessionOpen(ssn *framework.Session) {
 			//predicate gpu sharing
 			for _, val := range api.RegisteredDevices {
 				if devices, ok := nodeInfo.Others[val].(api.Devices); ok {
-					if rv := reflect.ValueOf(devices); rv.Kind() == reflect.Ptr && rv.IsNil() {
+					if api.IsNilDevice(devices) {
 						continue
 					}
 					if !devices.HasDeviceRequest(pod) {
@@ -268,7 +267,7 @@ func (pp *PredicatesPlugin) OnSessionOpen(ssn *framework.Session) {
 
 			for _, val := range api.RegisteredDevices {
 				if devices, ok := nodeInfo.Others[val].(api.Devices); ok {
-					if rv := reflect.ValueOf(devices); rv.Kind() == reflect.Ptr && rv.IsNil() {
+					if api.IsNilDevice(devices) {
 						continue
 					}
 					if !devices.HasDeviceRequest(pod) {
@@ -410,7 +409,7 @@ func (pp *PredicatesPlugin) OnSessionOpen(ssn *framework.Session) {
 			if !ok {
 				continue
 			}
-			if rv := reflect.ValueOf(devs); rv.Kind() == reflect.Ptr && rv.IsNil() {
+			if api.IsNilDevice(devs) {
 				continue
 			}
 			if !devs.HasDeviceRequest(task.Pod) {
