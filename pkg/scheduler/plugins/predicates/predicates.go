@@ -223,6 +223,9 @@ func (pp *PredicatesPlugin) OnSessionOpen(ssn *framework.Session) {
 			//predicate gpu sharing
 			for _, val := range api.RegisteredDevices {
 				if devices, ok := nodeInfo.Others[val].(api.Devices); ok {
+					if api.IsNilDevice(devices) {
+						continue
+					}
 					if !devices.HasDeviceRequest(pod) {
 						continue
 					}
@@ -264,6 +267,9 @@ func (pp *PredicatesPlugin) OnSessionOpen(ssn *framework.Session) {
 
 			for _, val := range api.RegisteredDevices {
 				if devices, ok := nodeInfo.Others[val].(api.Devices); ok {
+					if api.IsNilDevice(devices) {
+						continue
+					}
 					if !devices.HasDeviceRequest(pod) {
 						continue
 					}
@@ -388,6 +394,31 @@ func (pp *PredicatesPlugin) OnSessionOpen(ssn *framework.Session) {
 				} else {
 					return fmt.Errorf("failed to call %s plugin for task %s/%s on node %s, plugin does not exist", interpodaffinity.Name, task.Namespace, task.Name, node.Name)
 				}
+			}
+		}
+
+		// Device-aware check: use FilterNode (pure read, no side effects) so that
+		// the topology-aware preemption dry-run correctly accounts for device
+		// availability after simulated victim removals.
+		for _, val := range api.RegisteredDevices {
+			devObj, ok := node.Others[val]
+			if !ok {
+				continue
+			}
+			devs, ok := devObj.(api.Devices)
+			if !ok {
+				continue
+			}
+			if api.IsNilDevice(devs) {
+				continue
+			}
+			if !devs.HasDeviceRequest(task.Pod) {
+				continue
+			}
+			if code, msg, err := devs.FilterNode(task.Pod, ""); code != 0 || err != nil {
+				klog.Errorf("SimulatePredicate device %s FilterNode failed for task %s/%s on node %s: code=%d msg=%s err=%v",
+					val, task.Namespace, task.Name, node.Name, code, msg, err)
+				return fmt.Errorf("device %s cannot fit task %s/%s on node %s: %s", val, task.Namespace, task.Name, node.Name, msg)
 			}
 		}
 		return nil
