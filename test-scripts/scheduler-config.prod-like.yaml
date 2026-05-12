@@ -1,0 +1,52 @@
+# Volcano scheduler config matching prod-lor1-k8s-2 exactly, with one exception:
+# the LinkedIn-internal `uqm` (quota management) plugin is removed because it is
+# not built into the OSS volcano binary. Every other plugin and argument matches
+# values/prod-lor1/k8s-2/values.yaml rendered through scheduler-configmap.tpl.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volcano-scheduler-configmap
+  namespace: volcano-system
+data:
+  volcano-scheduler.conf: |
+    actions: "enqueue, preemptall, allocate, backfill"
+    tiers:
+    - plugins:
+      - name: gang
+        enablePreemptable: false
+        enableJobStarving: false
+      - name: conformance
+      - name: colocation
+        enablePredicate: true
+        enableNodeOrder: true
+        arguments:
+          ib: false
+          mz: true
+          mzScore: 20.0
+      - name: deviceshare
+        arguments:
+          deviceshare.VGPUEnable: true
+          deviceshare.SchedulePolicy: binpack
+          deviceshare.ScheduleWeight: 5
+          deviceshare.GPUExclusiveRules:
+            - kingkong.dl.linkedin.com/workloadType: multi-gpus
+    - plugins:
+      - name: predicates
+      - name: nodeorder
+        arguments:
+          leastrequested.weight: 0
+          mostrequested.weight: 0
+          nodeaffinity.weight: 2
+          podaffinity.weight: 0
+          balancedresource.weight: 0
+          tainttoleration.weight: 0
+          imagelocality.weight: 0
+          podtopologyspread.weight: 0
+      - name: binpack
+        arguments:
+          binpack.cpu: 1
+          binpack.memory: 1
+          binpack.resources: nvidia.com/gpu, volcano.sh/vgpu-number, volcano.sh/vgpu-memory
+          binpack.resources.nvidia.com/gpu: 2
+          binpack.resources.volcano.sh/vgpu-number: 5
+          binpack.resources.volcano.sh/vgpu-memory: 5
